@@ -1,0 +1,71 @@
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { ModuleFederationPlugin } = require('webpack').container;
+
+module.exports = {
+  entry: './src/index.js',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'bundle.js',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: 'babel-loader',
+      },
+      {
+        test: /\.jsx?$/, // Transpile JSX and JavaScript files
+        exclude: /node_modules/,
+        use: 'babel-loader',
+      },
+      {
+        test: /\.css$/, // Handle .css files
+        use: ['style-loader', 'css-loader'],
+      },
+      {
+        test: /\.scss$/, // Handle .scss files
+        use: ['style-loader', 'css-loader', 'sass-loader'],
+      }
+    ],
+  },
+  devServer: {
+    static: {
+      directory: path.join(__dirname, 'dist'),
+    },
+    port: 4000,
+    open: true,
+    hot: true, // Enable hot module replacement if you want it
+    compress: false, // Enable gzip compression
+    historyApiFallback: true, // Useful for single-page apps (SPA)
+  },
+  plugins: [
+    new ModuleFederationPlugin({
+        name: 'remoteApp',
+        filename: 'remoteEntry.js',
+        remotes: {
+            hostApp: 'hostApp@http://localhost:3000/remoteEntry.js',
+        },
+        exposes: {
+          './SectionComponent': './src/components/Section', // Expose a component
+          './NavComponent': './src/components/Nav',
+          './AllComponents': './src/components/index.js',
+        },
+        shared: {
+            'react': {
+              singleton: true
+            },
+            'react-dom': {
+              singleton: true
+            }
+          }
+      }),
+    new HtmlWebpackPlugin({
+      template: './src/index.html',
+    }),
+  ],
+  resolve: {
+    extensions: ['.js', '.jsx'],
+  },
+};
